@@ -1,0 +1,264 @@
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+HTML
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css"
+    />
+    <title>To Do List</title>
+  </head>
+  <body>
+    <section id="ToDoList">
+      <input type="text" name="Demo" id="Demo" value="Demo" />
+      <div>
+        <input
+          type="text"
+          name="AddItem"
+          id="addItem"
+          placeholder="Add to your list"
+        /><i id="Plus" class="bi bi-plus-lg"></i>
+      </div>
+      <ul id="todo-list">
+        <!-- Placeholder for To-Do List -->
+      </ul>
+      <button type="button" id="clearButton">Clear all completed</button>
+    </section>
+  </body>
+</html>
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+css
+
+* {
+  list-style: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+#ToDoList {
+  display: flex;
+  flex-direction: column;
+  width: 45%;
+  box-shadow: 0 2px 3px 3px rgba(0, 0, 0, 0.5);
+  -webkit-box-shadow: 0 2px 3px 3px rgba(0, 0, 0, 0.5);
+  -moz-box-shadow: 0 2px 3px 3px rgba(0, 0, 0, 0.5);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#Demo {
+  color: #000;
+  border: none;
+  width: 93%;
+  height: 3rem;
+  text-indent: 10px;
+}
+
+#Demo[type="text"]:focus {
+  outline: none;
+}
+
+i {
+  cursor: pointer;
+}
+
+#addItem {
+  border: none;
+  font-style: italic;
+  width: 94%;
+  height: 3rem;
+  text-indent: 10px;
+}
+
+#addItem[type="text"]:focus {
+  outline: none;
+}
+
+#addItem[type="text"]::placeholder {
+  text-indent: 10px;
+}
+
+#todo-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+}
+
+.listItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 3rem;
+  gap: 15px;
+  transition: 300ms ease;
+}
+
+.listItem:hover {
+  background-color: lightblue;
+}
+
+.inputList {
+  border: none;
+}
+
+.inputList[type="text"]:focus {
+  outline: none;
+}
+
+.taskDiv {
+  padding-right: 45%;
+  width: 50%;
+  border: none;
+  outline: none;
+}
+
+.taskDiv .checkbox:checked ~ .listItem {
+  text-decoration: line-through;
+}
+
+.dotsDiv {
+  padding-right: 3%;
+  border: none;
+}
+
+#clearButton {
+  width: 100%;
+  height: 3rem;
+  border: none;
+  cursor: pointer;
+  background: lightgray;
+  color: #545862;
+}
+
+#clearButton:hover {
+  text-decoration: underline;
+  background-color: lightslategray;
+  color: #000;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Javascript
+
+let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+export function saveTask() {
+  localStorage.setItem('tasks', JSON.stringify(tasks));
+}
+
+export function removeItem(listItem, index) {
+  tasks.splice(index, 1);
+  listItem.remove();
+
+  // update indexes of remaining tasks
+  for (let i = 0; i < tasks.length; i += 1) {
+    tasks[i].index = i + 1;
+  }
+  saveTask();
+}
+
+export function Checkbox(task, listItem) {
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.classList.add('checkbox');
+  checkbox.checked = task.completed;
+  checkbox.addEventListener('change', () => {
+    task.completed = checkbox.checked;
+    saveTask();
+  });
+  listItem.appendChild(checkbox);
+}
+
+export function taskList() {
+  const taskListElement = document.getElementById('todo-list');
+  taskListElement.innerHTML = '';
+
+  tasks.forEach((task, index) => {
+    const listItem = document.createElement('li');
+    listItem.classList.add('listItem');
+
+    Checkbox(task, listItem);
+
+    const taskDiv = document.createElement('div');
+    taskDiv.classList.add('taskDiv');
+    taskDiv.innerText = task.description;
+
+    const editDescription = () => {
+      const inputTask = document.createElement('input');
+      inputTask.classList.add('taskDiv');
+      inputTask.value = task.description;
+      taskDiv.replaceWith(inputTask);
+      inputTask.focus();
+      inputTask.addEventListener('blur', () => {
+        task.description = inputTask.value;
+        inputTask.replaceWith(taskDiv);
+        taskDiv.innerText = task.description;
+        saveTask();
+      });
+    };
+    taskDiv.addEventListener('dblclick', editDescription);
+    listItem.appendChild(taskDiv);
+
+    const dotsDiv = document.createElement('div');
+    dotsDiv.classList.add('dotsDiv');
+
+    const dotsIcon = document.createElement('div');
+    dotsIcon.innerHTML = '<i class="bi bi-three-dots-vertical"></i>';
+    dotsDiv.appendChild(dotsIcon);
+    dotsIcon.addEventListener('click', () => removeItem(listItem, index));
+    listItem.appendChild(dotsDiv);
+    taskListElement.appendChild(listItem);
+
+    listItem.addEventListener('mouseenter', () => {
+      dotsIcon.innerHTML = '<i class="bi bi-trash3"></i>';
+    });
+    listItem.addEventListener('mouseleave', () => {
+      dotsIcon.innerHTML = '<i class="bi bi-three-dots-vertical"></i>';
+    });
+  });
+}
+
+export function addTask() {
+  const input = document.getElementById('addItem');
+
+  function addNewTask() {
+    if (!input.value) return;
+    const newTask = { description: input.value, completed: false, index: tasks.length + 1 };
+    tasks.push(newTask);
+    taskList();
+    input.value = '';
+    saveTask();
+  }
+
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      addNewTask();
+    }
+  });
+  document.getElementById('Plus').addEventListener('click', addNewTask);
+}
+
+export function clearCompleted() {
+  const clearButton = document.getElementById('clearButton');
+  clearButton.addEventListener('click', () => {
+    tasks = tasks.filter((task) => !task.completed);
+    taskList();
+    saveTask();
+  });
+}
+
+const demoInput = document.getElementById('Demo');
+
+const demoInputValue = localStorage.getItem('demoInputValue');
+if (demoInputValue) {
+  demoInput.value = demoInputValue;
+}
+demoInput.addEventListener('change', () => {
+  localStorage.setItem('demoInputValue', demoInput.value);
+});
